@@ -1,6 +1,43 @@
 package mop;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.ObjectInputStream;
+import java.io.PrintWriter;
+import java.io.IOException;
+import org.aspectj.lang.JoinPoint;
+
+import java.util.HashSet;
+
 public aspect BaseAspect {
+  //  private static HashSet<String> affectedMethods = new HashSet<String>();
+  private static HashSet<String> affectedMethods;
+
+  public static boolean inSet(JoinPoint.StaticPart contextJoinPoint) {
+//      if (affectedMethods.isEmpty()) {
+    if (affectedMethods == null) {
+      String impactedMethodsFilePath = System.getenv("IMPACTED_METHODS_FILE");
+      System.out.println("impactedMethodsFilePath: " + impactedMethodsFilePath);
+      // TODO: Eventually, have some logic that says, if the property has not been set, then return true (always)!
+      File impactedMethodsFile = new File(impactedMethodsFilePath);
+      if (impactedMethodsFile.exists()) {
+        try {
+          FileInputStream fileInput = new FileInputStream(impactedMethodsFilePath);
+          ObjectInputStream objectInput = new ObjectInputStream(fileInput);
+          affectedMethods = (HashSet) objectInput.readObject();
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+        System.out.println("Affected methods (no signature): " + affectedMethods.size());
+      } else {
+        System.err.println("Impacted methods file does not exist!");
+        affectedMethods = new HashSet<String>();
+      }
+    }
+    return affectedMethods.contains(contextJoinPoint.getSignature().getDeclaringTypeName()
+            + "#" + contextJoinPoint.getSignature().getName());
+  }
+
   pointcut notwithin() :
   !within(sun..*) &&
   !within(java..*) &&
@@ -23,5 +60,6 @@ public aspect BaseAspect {
   !within(org.powermock..*) &&
   !within(org.easymock..*) &&
   !within(com.mockrunner..*) &&
-  !within(org.jmock..*);
+  !within(org.jmock..*) &&
+  if(inSet(thisEnclosingJoinPointStaticPart));
 }
