@@ -10,15 +10,19 @@ import org.aspectj.lang.JoinPoint;
 import java.util.HashSet;
 
 public aspect BaseAspect {
-  //  private static HashSet<String> affectedMethods = new HashSet<String>();
   private static HashSet<String> affectedMethods;
-
+  private static boolean baseRV = false;
   public static boolean inSet(JoinPoint.StaticPart contextJoinPoint) {
-//      if (affectedMethods.isEmpty()) {
+    if (baseRV) {
+      return baseRV;
+    }
     if (affectedMethods == null) {
       String impactedMethodsFilePath = System.getenv("IMPACTED_METHODS_FILE");
       System.out.println("impactedMethodsFilePath: " + impactedMethodsFilePath);
-      // TODO: Eventually, have some logic that says, if the property has not been set, then return true (always)!
+      if (impactedMethodsFilePath == null) {
+        baseRV = true;
+        return baseRV;
+      }
       File impactedMethodsFile = new File(impactedMethodsFilePath);
       if (impactedMethodsFile.exists()) {
         try {
